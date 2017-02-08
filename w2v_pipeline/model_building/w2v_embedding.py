@@ -6,7 +6,6 @@ from tqdm import tqdm
 import psutil
 CPU_CORES = psutil.cpu_count()
 
-
 class w2v_embedding(corpus_iterator):
 
     def __init__(self, *args, **kwargs):

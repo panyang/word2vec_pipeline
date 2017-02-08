@@ -1,40 +1,42 @@
 import os
 from gensim.models.doc2vec import Doc2Vec
 from utils.mapreduce import corpus_iterator
+from tqdm import tqdm
 
 import gensim.models
 import psutil
 
 CPU_CORES = psutil.cpu_count()
 
-assert gensim.models.doc2vec.FAST_VERSION > -1
-
+assert (gensim.models.doc2vec.FAST_VERSION > -1)
 
 class d2v_embedding(corpus_iterator):
 
     def __init__(self, *args, **kwargs):
         super(d2v_embedding, self).__init__(*args, **kwargs)
-
         self.epoch_n = int(kwargs["epoch_n"])
 
-        self.clf = Doc2Vec(workers=CPU_CORES,
-                           window=int(kwargs["window"]),
-                           negative=int(kwargs["negative"]),
-                           sample=float(kwargs["sample"]),
-                           size=int(kwargs["size"]),
-                           min_count=int(kwargs["min_count"])
-                           )
+        self.clf = Doc2Vec(
+            workers=CPU_CORES,
+            window=int(kwargs["window"]),
+            negative=int(kwargs["negative"]),
+            sample=float(kwargs["sample"]),
+            size=int(kwargs["size"]),
+            min_count=int(kwargs["min_count"])
+        )
 
-    def compute(self, config):
+
+    def compute(self, **config):
         print("Learning the vocabulary")
-
-        ITR = self.labelized_sentence_iterator()
+        LSI = self.labelized_sentence_iterator
+        
+        ITR = tqdm(LSI(config["target_column"]))
         self.clf.build_vocab(ITR)
 
         print("Training the features")
-        for n in range(self.epoch_n):
+        for n in (range(self.epoch_n)):
             print(" - Epoch {}".format(n))
-            ITR = self.labelized_sentence_iterator()
+            ITR = LSI(config["target_column"])
             self.clf.train(ITR)
 
         print("Reducing the features")

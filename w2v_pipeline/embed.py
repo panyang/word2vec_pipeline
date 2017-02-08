@@ -3,6 +3,9 @@ import model_building as mb
 import simple_config
 from utils.db_utils import item_iterator
 
+import logging
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
 if __name__ == "__main__":
 
     config = simple_config.load()
@@ -14,7 +17,6 @@ if __name__ == "__main__":
     except:
         whitelist = []
 
-    #
     # Run the functions that act globally on the data
 
     for name in config["embedding"]["embedding_commands"]:

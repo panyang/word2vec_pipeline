@@ -1,7 +1,6 @@
 import gensim.models.doc2vec
 
-LabeledSentence = gensim.models.doc2vec.LabeledSentence
-
+TaggedDocument = gensim.models.doc2vec.TaggedDocument
 
 class simple_mapreduce(object):
 
@@ -35,14 +34,13 @@ class corpus_iterator(simple_mapreduce):
             text = row[target_column]
             yield unicode(text).split()
 
-    def labelized_sentence_iterator(self):
-        for item in self:
-            text = item[0]
-            idx = item[1]
-            f_sql = item[-1]
+    def labelized_sentence_iterator(self, target_column):
+        for row in self:
+            text = row[target_column]
+            
+            document_label = "_ref_{}".format(row["_ref"])
+            labels = [document_label,]
 
             for sentence in text.split('\n'):
-                sentence = unicode(sentence)
-                tokens = sentence.split()
-                label = "{}_{}".format(f_sql, idx)
-                yield LabeledSentence(tokens, [label, ])
+                tokens = unicode(sentence).split()
+                yield TaggedDocument(tokens, document_label)
