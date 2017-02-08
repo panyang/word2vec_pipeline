@@ -3,8 +3,8 @@ import model_building as mb
 import simple_config
 from utils.db_utils import item_iterator
 
-#import logging
-#logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+import logging
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 from tqdm import tqdm
 from utils.mapreduce import corpus_iterator
 
