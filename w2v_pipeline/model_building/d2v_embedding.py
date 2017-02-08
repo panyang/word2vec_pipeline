@@ -6,8 +6,7 @@ from tqdm import tqdm
 import gensim.models
 import psutil
 
-CPU_CORES = psutil.cpu_count()
-
+CPU_CORES = 1 #psutil.cpu_count()
 assert (gensim.models.doc2vec.FAST_VERSION > -1)
 
 class d2v_embedding(corpus_iterator):
@@ -18,6 +17,7 @@ class d2v_embedding(corpus_iterator):
 
         self.clf = Doc2Vec(
             workers=CPU_CORES,
+            dm=0,
             window=int(kwargs["window"]),
             negative=int(kwargs["negative"]),
             sample=float(kwargs["sample"]),
@@ -25,19 +25,28 @@ class d2v_embedding(corpus_iterator):
             min_count=int(kwargs["min_count"])
         )
 
+        self.data = None
+
+
+    def preload_dataset(self, **config):
+        print("Preloading datset into memory.")
+        LSI = self.labelized_sentence_iterator
+        self.data = list(LSI(config["target_column"]))
 
     def compute(self, **config):
         print("Learning the vocabulary")
-        LSI = self.labelized_sentence_iterator
-        
-        ITR = tqdm(LSI(config["target_column"]))
-        self.clf.build_vocab(ITR)
+
+        if self.data is None:
+            raise NotImplementedError("For now, data must be preloaded")
+            #LSI = self.labelized_sentence_iterator       
+            #ITR = LSI(config["target_column"])
+            #self.clf.build_vocab(ITR)
+
+        self.clf.build_vocab(self.data)
 
         print("Training the features")
-        for n in (range(self.epoch_n)):
-            print(" - Epoch {}".format(n))
-            ITR = LSI(config["target_column"])
-            self.clf.train(ITR)
+        for n in tqdm(range(self.epoch_n)):
+            self.clf.train(self.data)
 
         print("Reducing the features")
         self.clf.init_sims(replace=True)

@@ -31,16 +31,19 @@ class corpus_iterator(simple_mapreduce):
 
     def sentence_iterator(self, target_column):
         for row in self:
-            text = row[target_column]
-            yield unicode(text).split()
+            text = unicode(row[target_column])
+
+            for sentence in text.split('\n'):
+                yield sentence.split()
 
     def labelized_sentence_iterator(self, target_column):
         for row in self:
-            text = row[target_column]
+            text = unicode(row[target_column])
             
-            document_label = "_ref_{}".format(row["_ref"])
+            #document_label = "_ref_{}".format(row["_ref"])
+            document_label = int(row["_ref"])
             labels = [document_label,]
-
+            
             for sentence in text.split('\n'):
-                tokens = unicode(sentence).split()
-                yield TaggedDocument(tokens, document_label)
+                tokens = sentence.split()
+                yield TaggedDocument(tokens, labels)

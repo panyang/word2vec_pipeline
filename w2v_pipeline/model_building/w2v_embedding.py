@@ -4,7 +4,7 @@ from utils.mapreduce import corpus_iterator
 from tqdm import tqdm
 
 import psutil
-CPU_CORES = psutil.cpu_count()
+CPU_CORES = 2#psutil.cpu_count()
 
 class w2v_embedding(corpus_iterator):
 
@@ -36,19 +36,24 @@ class w2v_embedding(corpus_iterator):
             min_count=int(kwargs["min_count"]),
         )
 
+    def preload_dataset(self, **config):
+        print("Preloading datset into memory.")
+        LSI = self.sentence_iterator
+        self.data = list(LSI(config["target_column"]))      
+
     def compute(self, **config):
         print("Learning the vocabulary")
+        
+        if self.data is None:
+            raise NotImplementedError("For now, data must be preloaded")
 
-        ITR = self.sentence_iterator(config["target_column"])
-        self.clf.build_vocab(ITR)
+        self.clf.build_vocab(self.data)
 
         print("{} words in vocabulary".format(len(self.clf.index2word)))
 
         print("Training the features")
         for n in tqdm(range(self.epoch_n)):
-            # print " - Epoch {}".format(n)
-            ITR = self.sentence_iterator(config["target_column"])
-            self.clf.train(ITR)
+            self.clf.train(self.data)
 
         print("Reducing the features")
         self.clf.init_sims(replace=True)
@@ -57,3 +62,4 @@ class w2v_embedding(corpus_iterator):
         out_dir = config["output_data_directory"]
         f_features = os.path.join(out_dir, config["w2v_embedding"]["f_db"])
         self.clf.save(f_features)
+

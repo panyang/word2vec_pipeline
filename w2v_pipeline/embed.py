@@ -5,6 +5,9 @@ from utils.db_utils import item_iterator
 
 import logging
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+from tqdm import tqdm
+from utils.mapreduce import corpus_iterator
+
 
 if __name__ == "__main__":
 
@@ -34,4 +37,7 @@ if __name__ == "__main__":
                                    config["embedding"],
                                    whitelist,
                                    section="parse")
+        
+        func.preload_dataset(**kwargs)
         func.compute(**kwargs)
+
