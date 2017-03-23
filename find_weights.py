@@ -6,6 +6,9 @@ from scipy.spatial.distance import pdist
 from word2vec_pipeline.utils.data_utils import load_w2vec
 from word2vec_pipeline.utils.db_utils import item_iterator
 from word2vec_pipeline import simple_config
+
+from tqdm import tqdm
+
 config = simple_config.load()
 target_column = config['target_column']
 
@@ -13,7 +16,7 @@ W = load_w2vec()
 n_vocab,n_dim = W.syn0.shape
 word2index = dict(zip(W.index2word, range(n_vocab)))
 
-batch_size = 64
+batch_size = 2**10
 
 ##################################################################
 
@@ -21,16 +24,22 @@ batch_size = 64
 
 import tensorflow as tf
 
+print "Building model"
+
 X = tf.placeholder(tf.float32, shape=[batch_size, n_vocab])
 word2vec_layer = tf.constant(W.syn0,shape=(n_vocab,n_dim))
 alpha = tf.Variable(tf.ones([n_vocab]))
 
-Y = tf.matmul(X*alpha, word2vec_layer)
+Y = X * tf.exp(alpha)
+Y = tf.matmul(Y, word2vec_layer)
 Y = tf.nn.l2_normalize(Y, dim=1)
 dist = tf.matmul(Y, tf.transpose(Y))
 loss = (tf.reduce_sum(dist) - batch_size) / (batch_size**2-batch_size)
-optimizer = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
+optimizer = tf.train.AdamOptimizer(0.001).minimize(loss)
+#optimizer = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
 #loss = weight_sum_model(batch_size=batch_size)
+
+print "Model building complete"
 
 ##################################################################
 
@@ -47,22 +56,27 @@ for item in item_iterator():
 
 V = np.array(V)
 
+V[V>1] = 1.0
+
 n_samples = V.shape[0]
 import random
 
+config = tf.ConfigProto(device_count = {'GPU': 0})
+
 with tf.Session() as sess:
+#with tf.Session(config=config) as sess:
     init = tf.global_variables_initializer()
     sess.run(init)
 
     random.shuffle(V)
 
-    k = 0
-    while True:
-
+    for k in xrange(10**10):
 
         epoch_loss = []
 
         for i in range(n_samples//batch_size - 1):
+
+            
             v_batch = V[i*batch_size:(i+1)*batch_size]
 
             funcs = [optimizer, loss]
@@ -75,13 +89,12 @@ with tf.Session() as sess:
 
         print k,np.mean(epoch_loss), a.max(), a.min()
         
-        if k%10==0:
+        if k%50==0:
             df = pd.DataFrame(index=W.index2word)
             df["alpha"] = a
             df.to_csv("solved_weights.csv")
             print df
-            
-        k+=1
+
 
         
 #####################################################################
